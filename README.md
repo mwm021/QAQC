@@ -1,6 +1,7 @@
 # 	Controlling the Chaos: A data-informed, automated Quality-Assurance and Quality-Control Process for Continuous, Hydrological Data.
 
-M. W. McGauley, B. E. Jacko, S. Estes, V. B. Smith, B. M. Wadzuk &nsbp;
+M. W. McGauley, B. E. Jacko, S. Estes, V. B. Smith, B. M. Wadzuk
+&nbsp;
 Villanova Center for Resilient Water Systems, Department of Civil and Environmental Engineering, Villanova University, 800 Lancaster Ave, Villanova, PA 19085.
 
 Abstract:
