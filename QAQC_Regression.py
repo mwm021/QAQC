@@ -162,15 +162,15 @@ def get_equation(order, coefficients):
     elif order == "second":
         return 'y = %.5f * x + %.5f * x^2 + %.5f' % tuple(coefficients)
     elif order == "third":
-        return 'y = %.5f * x + %.5f * x^2 +\n %.5f * x^3 + %.5f' % tuple(coefficients)
+        return 'y = %.5f * x + %.5f * x^2 + %.5f * x^3 + %.5f' % tuple(coefficients)
     elif order == "fourth":
-        return 'y = %.5f * x + %.5f * x^2 +\n %.5f * x^3 + %.5f * x^4 + %.5f' % tuple(coefficients)
+        return 'y = %.5f * x + %.5f * x^2 + %.5f * x^3 +\n %.5f * x^4 + %.5f' % tuple(coefficients)
     elif order == "fifth":
-        return 'y = %.5f * x + %.5f * x^2 +\n %.5f * x^3 + %.5f * x^4 +\n %.5f * x^5 + %.5f' % tuple(coefficients)
+        return 'y = %.5f * x + %.5f * x^2 + %.5f * x^3 +\n %.5f * x^4 + %.5f * x^5 + %.5f' % tuple(coefficients)
     elif order == "sixth":
-        return 'y = %.5f * x + %.5f * x^2 +\n %.5f * x^3 + %.5f * x^4 +\n %.5f * x^5 + %.5f * x^6 +\n %.5f' % tuple(coefficients)
+        return 'y = %.5f * x + %.5f * x^2 + %.5f * x^3 +\n %.5f * x^4 + %.5f * x^5 + %.5f * x^6 + %.5f' % tuple(coefficients)
     elif order == "seventh":
-        return 'y = %.5f * x + %.5f * x^2 +\n %.5f * x^3 + %.5f * x^4 +\n %.5f * x^5 + %.5f * x^6 +\n + %.5f x^7 +\n %.5f' % tuple(coefficients)
+        return 'y = %.5f * x + %.5f * x^2 + %.5f * x^3 +\n %.5f * x^4 + %.5f * x^5 + %.5f * x^6 + %.5f x^7 + %.5f' % tuple(coefficients)
 
 
 def test_seventhPower(x, a, b, c, d, e, f, g, h):
@@ -441,18 +441,33 @@ def visualizeDataChange(dfs, target_variable, name, units):
 
     fig = plt.figure(figsize=[35, 20])
     ax = fig.add_subplot(111)
+    ax2 = ax.twinx()
+
+    if name == "CSW_2020":
+        ax.set_ylim(0, 300)
+        ax2.set_ylim(0, 300)
+
+    if name == "Commons_2020":
+        ax.set_ylim(-10, 60)
+        ax2.set_ylim(-10, 60)
+
     for df in dfs:
         if df.columns.name == "Before":
             ax.plot(df[target_variable], alpha=0.6, lw = 2, label=target_variable + " " + df.columns.name, color="orange", linestyle = "dotted")
             ax.plot(df[target_variable].rolling("1D").mean(), lw = 6, alpha=1.0, label=target_variable + " " + df.columns.name, color="#EE6055")
 
+
         if df.columns.name == "After":
             ax.plot(df[target_variable], alpha=0.6, lw = 2, label=target_variable + " " + df.columns.name, color="#66CAD1", linestyle = "dashed")
             ax.plot(df[target_variable].rolling("1D").mean(), lw = 2, alpha=1.0, label=target_variable + " " + df.columns.name, color="#070600")
+            ax.pcolorfast(ax.get_xlim(), ax.get_ylim(),
+                            df["isStormCopy"].values[np.newaxis],
+                            cmap=cmap, alpha=0.3)
 
-    ax2 = ax.twinx()
+    ax.set_xlim([dfs[0].index.min(), dfs[0].index.max()])
     ax2.scatter(dfs[0].index.values, dfs[0][target_variable].subtract(
         dfs[1][target_variable]), color="#465775", marker="*", s=50)
+
     ax.set_xlabel("DateTime (Year-Month)", labelpad=20)
     ax.set_ylabel(target_variable + " (" + units + ")", labelpad=25)
     ax2.set_ylabel(target_variable + " Change (Before - After)",
@@ -460,11 +475,9 @@ def visualizeDataChange(dfs, target_variable, name, units):
     ax.set_yscale("symlog")
     ax2.set_yscale("symlog")
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
-    ax.tick_params(labelrotation=45)
-    ax2.tick_params(labelrotation=45)
-    align.yaxes(ax, 0, ax2, 0, 0.5)
-    ax.set_ylim(0, 300)
-    ax2.set_ylim(0, 300)
+    ax.tick_params(axis = "both", labelrotation=45, direction = "out", length = 15, width = 2)
+    ax2.tick_params(axis = "both", labelrotation=45, direction = "out", length = 15, width = 2)
+
     ax.legend(handles=patches + lines + markers,
               bbox_to_anchor=(1.10, 1), loc='upper left')
     plt.tight_layout()
@@ -476,13 +489,17 @@ def visualizeDataChange(dfs, target_variable, name, units):
 def plot_regression(calculated, original, cumulativeRain, rsq, equation, name, dir, target, units):
     fig = plt.figure(figsize=[35, 25])
     fig.text(0.05, 0.02, "r-squared = " + str(rsq) + "\n"
-             + "Fit Equation = " + equation, fontsize=30)
-    fig.autofmt_xdate(rotation=45)
+             + "Fit Equation = " + equation, fontsize=50)
     ax = fig.add_subplot(111)
+    ax.set_xlim([calculated.index.min(), calculated.index.max()])
     ax.scatter(original.index, original, color="k", alpha=0.5)
     ax.plot(calculated.index, calculated)
-    ax.set_title("Best Fit of " + target + " to Cumulative Storm Rainfall")
+    ax.tick_params(axis = "both", labelrotation=45, direction = "out", length = 15, width = 2)
     ax.set_xlabel("Datetime")
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(0))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
+    ax.fmt_xdata = mdates.DateFormatter("%Y-%m-%d %H:%M")
+    fig.autofmt_xdate(rotation = 20)
     ax.set_ylabel(target + " (" + units + ")")
     plt.savefig(os.path.join(dir,
                              name + "_regression.jpg"), transparent=True)
