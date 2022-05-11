@@ -178,6 +178,8 @@ def visualizeDataChange(dfs, target_variable, name, units):
     ax = fig.add_subplot(111)
     ax2 = ax.twinx()
 
+    ax.set_xlim([dfs[0].index.min(), dfs[0].index.max()])
+
     if name == "CSW_2020":
         ax.set_ylim(0, 300)
         ax2.set_ylim(0, 300)
@@ -199,7 +201,6 @@ def visualizeDataChange(dfs, target_variable, name, units):
                             df["isStormCopy"].values[np.newaxis],
                             cmap=cmap, alpha=0.3)
 
-    ax.set_xlim([dfs[0].index.min(), dfs[0].index.max()])
     ax2.scatter(dfs[0].index.values, dfs[0][target_variable].subtract(
         dfs[1][target_variable]), color="#465775", marker="*", s=50)
 
