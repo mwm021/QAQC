@@ -17,7 +17,11 @@ from pandarallel import pandarallel
 
 pandarallel.initialize()
 
-plt.rcParams.update({'font.size': 42})
+plt.rcParams.update({
+    "font.size": 42,
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Palatino"]
+})
 
 output_directory = os.path.join(os.getcwd(), "Output")
 if not os.path.exists(output_directory):
@@ -52,14 +56,37 @@ def checkRain(row, df):
             row["Flow"] == "StormFlow"
             return "StormFlow"
         elif time_diff >= 360:
-            return "BaseFlow"
-    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values:
+            if row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
+                    and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+                    df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+                df["isRain"] = True
+                return "StormFlow"
+            elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
+                    and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+                    df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+                row["isRain"] = True
+                return "StormFlow"
+            else:
+                return "BaseFlow"
+    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values \
+        and row["Flow"] == "StormFlow" and "BaseFlow" in\
+        df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+        return "BaseFlow"
+    elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values \
+        and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" in\
+        df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
         return "BaseFlow"
     elif row["isRain"] == True:
-        row["Flow"] == "StormFlow"
+        row["Flow"] = "StormFlow"
         return "StormFlow"
     elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
-            and row["Flow"] == "StormFlow" and "BaseFlow" not in df.loc[previousSixStart:index]["Flow"].values:
+            and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+            df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+        row["isRain"] = True
+        return "StormFlow"
+    elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
+            and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+            df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
         row["isRain"] = True
         return "StormFlow"
     elif row["isStorm"] == "NA":
@@ -84,16 +111,11 @@ def correctData(filename, columns, target, units):
         before_df = df.copy(deep=True)
         before_df.columns.name = "Before"
 
-        df["Flow"] = np.where(df["Flow"] > 0.1, "StormFlow", "BaseFlow")
+        df["Flow"] = np.where(df["Flow"].astype(np.float64) >= 0.100, "StormFlow", "BaseFlow")
         df["isRain"] = np.where(df["Rain"] == 0, False, True)
         df["isStorm"] = "BaseFlow"
 
-        start = time.perf_counter()
-
         df["isStorm"] = df.parallel_apply(checkRain, axis=1, args=(df,))
-
-        end2 = time.perf_counter()
-        print(end2 - start)
 
         df["stormNum"] = (df["isStorm"] != df["isStorm"].shift()).cumsum()
         df["isStormCopy"] = df["isStorm"]
@@ -132,7 +154,7 @@ def correctData(filename, columns, target, units):
         visualizeDataChange([before_df, combined_df], target, name, units)
         combined_df["Flow"] = before_df["Flow"]
         combined_df = combined_df.drop(
-            ["stormNum", "isStorm", "ZScore", "ZScore_bool", "isRain", "isStormCopy"], axis=1)
+            ["stormNum", "ZScore", "ZScore_bool", "isStormCopy", "isStorm", "isRain"], axis=1)
 
         combined_df.to_excel(os.path.join(
             output_directory, df.columns.name + "_QAQC.xlsx"))
@@ -143,32 +165,59 @@ def correctData(filename, columns, target, units):
 def visualizeDataChange(dfs, target_variable, name, units):
     cmap = ListedColormap(['gray', 'white'])
 
-    patches = [Patch(facecolor='gray', edgecolor='b', label='StormFlow'), Patch(
-        facecolor='white', edgecolor='b', label='BaseFlow')]
-    lines = [Line2D([0], [0], color='b', lw=2, label='Before'),
-             Line2D([0], [0], color='orange', lw=2, label='After')]
+    patches = [Patch(facecolor="gray", edgecolor="b", label="StormFlow"), Patch(
+        facecolor="white", edgecolor="b", label="BaseFlow")]
+    lines = [Line2D([0], [0], color="orange", lw=6, label="Before", linestyle = "dotted"),
+             Line2D([0], [0], color="#66CAD1", lw=6, label="After", linestyle = "dashed"),
+             Line2D([0], [0], color="#EE6055", lw=6, label="Moving 1-day\nAverage, Before"),
+             Line2D([0], [0], color="#070600", lw=6, label="Moving 1-day\nAverage, After")]
+    markers = [Line2D([], [], color="#465775", marker="*",
+                      linestyle="None", markersize=50, label="Change in Value")]
 
     fig = plt.figure(figsize=[35, 20])
     ax = fig.add_subplot(111)
-    for df in dfs:
-        ax.plot(df[target_variable].rolling(window="1D").mean(),
-                alpha=0.7, label=target_variable + " " + df.columns.name)
     ax2 = ax.twinx()
-    ax2.scatter(dfs[0].index.values, dfs[0]
-                [target_variable].subtract(dfs[1][target_variable]))
-    ax.set_xlabel("DateTime (Year-Month)")
-    ax.set_ylabel(target_variable + " " + units, labelpad=25)
+
+    if name == "CSW_2020":
+        ax.set_ylim(0, 300)
+        ax2.set_ylim(0, 300)
+
+    if name == "Commons_2020":
+        ax.set_ylim(-10, 60)
+        ax2.set_ylim(-10, 60)
+
+    for df in dfs:
+        if df.columns.name == "Before":
+            ax.plot(df[target_variable], alpha=0.6, lw = 2, label=target_variable + " " + df.columns.name, color="orange", linestyle = "dotted")
+            ax.plot(df[target_variable].rolling("1D").mean(), lw = 6, alpha=1.0, label=target_variable + " " + df.columns.name, color="#EE6055")
+
+
+        if df.columns.name == "After":
+            ax.plot(df[target_variable], alpha=0.6, lw = 2, label=target_variable + " " + df.columns.name, color="#66CAD1", linestyle = "dashed")
+            ax.plot(df[target_variable].rolling("1D").mean(), lw = 2, alpha=1.0, label=target_variable + " " + df.columns.name, color="#070600")
+            ax.pcolorfast(ax.get_xlim(), ax.get_ylim(),
+                            df["isStormCopy"].values[np.newaxis],
+                            cmap=cmap, alpha=0.3)
+
+    ax.set_xlim([dfs[0].index.min(), dfs[0].index.max()])
+    ax2.scatter(dfs[0].index.values, dfs[0][target_variable].subtract(
+        dfs[1][target_variable]), color="#465775", marker="*", s=50)
+
+    ax.set_xlabel("DateTime (Year-Month)", labelpad=20)
+    ax.set_ylabel(target_variable + " (" + units + ")", labelpad=25)
     ax2.set_ylabel(target_variable + " Change (Before - After)",
                    rotation=270, labelpad=65)
     ax.set_yscale("symlog")
     ax2.set_yscale("symlog")
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
-    plt.xticks(rotation=45)
-    ax.legend(handles=patches + lines,
+    ax.tick_params(axis = "both", labelrotation=45, direction = "out", length = 15, width = 2)
+    ax2.tick_params(axis = "both", labelrotation=45, direction = "out", length = 15, width = 2)
+
+    ax.legend(handles=patches + lines + markers,
               bbox_to_anchor=(1.10, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig(os.path.join(scatter_directory, name + "_"
-                             + target_variable + "_BeforeAfterVisualization.jpg"))
+    plt.savefig(os.path.join(scatter_directory, name + "_" + target_variable
+                             + "_BeforeAfterVisualization.jpg"), transparent=True)
     plt.close()
 
 

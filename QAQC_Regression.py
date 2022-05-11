@@ -300,24 +300,8 @@ def test_regression(df, dir, target, units):
             return pd.DataFrame(test_seventhPower(df["cumulativeRain"], *popt7))
 
 
-def checkEarlyRain(row, df):
-    index = row.name
-    nextSixEnd = index + timedelta(hours=6)
 
-    if row["isRain"] == False and True in df.loc[index:nextSixEnd]["isRain"].values:
-        row["isRain"] = True
-        return "StormFlow"
-    elif row["isRain"] == False and True not in df.loc[index:nextSixEnd]["isRain"].values:
-        return "BaseFlow"
-    elif row["isRain"] == True:
-        return "StormFlow"
-    elif row["isStorm"] == "NA":
-        return "NA"
-    else:
-        return "BaseFlow"
-
-
-def checkLateRain(row, df):
+def checkRain(row, df):
     index = row.name
     previousSixStart = index - timedelta(hours=6)
     nextSixEnd = index + timedelta(hours=6)
@@ -330,17 +314,47 @@ def checkLateRain(row, df):
         time_diff = ((next_rain - last_rain).total_seconds())/60
         if time_diff < 360:
             row["isRain"] = True
+            row["Flow"] == "StormFlow"
             return "StormFlow"
         elif time_diff >= 360:
-            return "BaseFlow"
-    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values:
+            if row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
+                    and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+                    df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+                df["isRain"] = True
+                return "StormFlow"
+            elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
+                    and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+                    df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+                row["isRain"] = True
+                return "StormFlow"
+            else:
+                return "BaseFlow"
+    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values \
+        and row["Flow"] == "StormFlow" and "BaseFlow" in\
+        df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+        return "BaseFlow"
+    elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values \
+        and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" in\
+        df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
         return "BaseFlow"
     elif row["isRain"] == True:
+        row["Flow"] = "StormFlow"
+        return "StormFlow"
+    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
+            and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+            df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+        row["isRain"] = True
+        return "StormFlow"
+    elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
+            and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
+            df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+        row["isRain"] = True
         return "StormFlow"
     elif row["isStorm"] == "NA":
         return "NA"
     else:
         return "BaseFlow"
+
 
 
 def correctData(filename, columns, target, units, dir):
@@ -366,11 +380,7 @@ def correctData(filename, columns, target, units, dir):
         df["isRain"] = np.where(df["Rain"] == 0, False, True)
         df["isStorm"] = "BaseFlow"
 
-
-        df.iloc[:72]["isStorm"] = df.iloc[:72].parallel_apply(
-            checkEarlyRain, axis=1, args=(df,))
-        df.iloc[72:]["isStorm"] = df.iloc[72:].parallel_apply(
-            checkLateRain, axis=1, args=(df,))
+        df["isStorm"] = df.parallel_apply(checkRain, axis=1, args=(df,))
 
         target_variable = target
         test_difference(df, target_variable)
@@ -420,7 +430,7 @@ def correctData(filename, columns, target, units, dir):
         visualizeDataChange([before_df, combined_df], target, name, units)
         combined_df["Flow"] = before_df["Flow"]
         combined_df = combined_df.drop(
-            ["stormNum", "ZScore", "ZScore_bool", "isRain", "isStormCopy", "cumulativeRain", "Calculated" + target, "Calculated" + target + "_bool", "Flow", "Rain"], axis=1)
+            ["stormNum", "ZScore", "ZScore_bool", "isRain", "isStormCopy", "cumulativeRain"], axis=1)
 
         combined_df.to_excel(os.path.join(
             output_directory, df.columns.name + "_withRegression_QAQC.xlsx"))

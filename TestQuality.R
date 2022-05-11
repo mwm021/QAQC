@@ -199,16 +199,16 @@ create_boxplot_lower <- function(data, grouping, fill = NULL, fillName, title, x
 
 location = "Commons"
 
-before <- read_excel(here("Data", "Commons_2020.xlsx"))
+before <- read_excel(here("Data", "Commons_2020.xlsx")) %>% select(Datetime, Depth, Rain)
 before <- before %>% pivot_longer(cols = Depth:Rain, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
 before$Datetime <- as.Date(before$Datetime, format = "%m/%d/%Y %H:%M:%S")
 before <- as_tibble(before)
-after <- read_excel(here("Output", "Commons_2020_QAQC.xlsx"))
+after <- read_excel(here("Output", "Commons_2020_QAQC.xlsx")) %>% select(Datetime, Depth, Rain)
 after <- after %>% pivot_longer(cols = Depth:Rain, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
 after$Datetime <- as.Date(after$Datetime, format = "%m/%d/%Y %H:%M:%S")
 after <- as_tibble(after)
-regression <- read_excel(here("Output", "Commons_2020_withRegression_QAQC.xlsx"))
-regression <- regression %>% select(-isStorm, -Velocity) %>% pivot_longer(cols = Depth, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
+regression <- read_excel(here("Output", "Commons_2020_withRegression_QAQC.xlsx")) %>% select(Datetime, Depth, Rain)
+regression <- regression %>% pivot_longer(cols = Depth:Rain, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
 regression$Datetime <- as.Date(regression$Datetime, format = "%m/%d/%Y %H:%M:%S")
 regression <- as_tibble(regression)
 
@@ -233,16 +233,16 @@ create_boxplot_lower(lower, vars(Type), lower$Type, "Type", "Boxplot of Depth Be
 
 location = "CSW"
 
-before <- read_excel(here("Data", "CSW_2020.xlsx"))
+before <- read_excel(here("Data", "CSW_2020.xlsx")) %>% select(Datetime, Velocity, Rain)
 before <- before %>% pivot_longer(cols = Velocity:Rain, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
 before$Datetime <- as.Date(before$Datetime, format = "%m/%d/%Y %H:%M:%S")
 before <- as_tibble(before)
-after <- read_excel(here("Output", "CSW_2020_QAQC.xlsx"))
+after <- read_excel(here("Output", "CSW_2020_QAQC.xlsx")) %>% select(Datetime, Velocity, Rain)
 after <- after %>% pivot_longer(cols = Velocity:Rain, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
 after$Datetime <- as.Date(after$Datetime, format = "%m/%d/%Y %H:%M:%S")
 after <- as_tibble(after)
-regression <- read_excel(here("Output", "CSW_2020_withRegression_QAQC.xlsx"))
-regression <- regression %>% select(-isStorm) %>% pivot_longer(cols = Velocity, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
+regression <- read_excel(here("Output", "CSW_2020_withRegression_QAQC.xlsx")) %>% select(Datetime, Velocity, Rain)
+regression <- regression %>% pivot_longer(cols = Velocity:Rain, names_to = "VariableCode", values_to = "DataValue", values_drop_na = FALSE)
 regression$Datetime <- as.Date(regression$Datetime, format = "%m/%d/%Y %H:%M:%S")
 regression <- as_tibble(regression)
 
