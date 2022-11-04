@@ -223,13 +223,13 @@ combined_data <- combined_data %>% filter(VariableCode == "Depth")
 upper <- combined_data %>% filter(DataValue > 10)
 lower <- combined_data %>% filter(DataValue < 1)
 
-create_histogram_raw(combined_data, vars(Type), combined_data$Type, "Type", "Histogram of Depth Before, After, and After with Regression", "Depth (ft)", "Count", location)
-create_histogram_upper(upper, vars(Type), upper$Type, "Type", "Histogram of Depth Before, After, and After with Regression (Highest Values)", "Depth (ft)", "Count", location)
-create_histogram_lower(lower, vars(Type), lower$Type, "Type", "Histogram of Depth Before, After, and After with Regression (Lowest Values)", "Depth (ft)", "Count", location)
+create_histogram_raw(combined_data, vars(Type), combined_data$Type, "Type", "Histogram of Depth Before, After, and After with Regression", "Depth (in)", "Count", location)
+create_histogram_upper(upper, vars(Type), upper$Type, "Type", "Histogram of Depth Before, After, and After with Regression (Highest Values)", "Depth (in)", "Count", location)
+create_histogram_lower(lower, vars(Type), lower$Type, "Type", "Histogram of Depth Before, After, and After with Regression (Lowest Values)", "Depth (in)", "Count", location)
 
-create_boxplot_raw(combined_data, vars(Type), combined_data$Type, "Type", "Boxplot of Depth Before, After, and After with Regression", "", "Depth (ft)", location)
-create_boxplot_upper(upper, vars(Type), upper$Type, "Type", "Boxplot of Depth Before, After, and After with Regression (Highest Values)", "", "Depth (ft)", location)
-create_boxplot_lower(lower, vars(Type), lower$Type, "Type", "Boxplot of Depth Before, After, and After with Regression (Lowest Values)", "", "Depth (ft)", location)
+create_boxplot_raw(combined_data, vars(Type), combined_data$Type, "Type", "Boxplot of Depth Before, After, and After with Regression", "", "Depth (in)", location)
+create_boxplot_upper(upper, vars(Type), upper$Type, "Type", "Boxplot of Depth Before, After, and After with Regression (Highest Values)", "", "Depth (in)", location)
+create_boxplot_lower(lower, vars(Type), lower$Type, "Type", "Boxplot of Depth Before, After, and After with Regression (Lowest Values)", "", "Depth (in)", location)
 
 location = "CSW"
 

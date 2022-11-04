@@ -72,8 +72,13 @@ def test_event_difference(df, target_variable):
     num_neither = 0
 
     for unique_storm in storms:
-        storm_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_storm][target_variable], storm[target_variable]).pvalue
-        base_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_storm][target_variable], base[target_variable]).pvalue
+        if len(df[df["isStorm"] == unique_storm][target_variable].dropna()) == 0 or len(storm[target_variable].dropna()) == 0:
+            continue
+        if len(df[df["isStorm"] == unique_storm][target_variable].dropna()) == 0 or len(base[target_variable].dropna()) == 0:
+            continue
+
+        storm_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_storm][target_variable].dropna(), storm[target_variable].dropna()).pvalue
+        base_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_storm][target_variable].dropna(), base[target_variable].dropna()).pvalue
 
         if storm_prob > 0.05:
             num_storm += 1
@@ -99,8 +104,13 @@ def test_event_difference(df, target_variable):
     num_neither = 0
 
     for unique_base in bases:
-        storm_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_base][target_variable], storm[target_variable]).pvalue
-        base_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_base][target_variable], base[target_variable]).pvalue
+        if len(df[df["isStorm"] == unique_base][target_variable].dropna()) == 0 or len(storm[target_variable].dropna()) == 0:
+            continue
+        if len(df[df["isStorm"] == unique_base][target_variable].dropna()) == 0 or len(base[target_variable].dropna()) == 0:
+            continue
+
+        storm_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_base][target_variable].dropna(), storm[target_variable].dropna()).pvalue
+        base_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_base][target_variable].dropna(), base[target_variable].dropna()).pvalue
 
         if storm_prob > 0.05:
             num_storm += 1
@@ -132,8 +142,13 @@ def test_difference(df, target_variable):
         num_base = 0
         num_neither = 0
         for window in df.resample(period):
-            storm_prob = stats.mannwhitneyu(window[1][target_variable], storm[target_variable]).pvalue
-            base_prob = stats.mannwhitneyu(window[1][target_variable], base[target_variable]).pvalue
+            if len(window[1][target_variable].dropna()) == 0 or len(storm[target_variable].dropna()) == 0:
+                continue
+            if len(window[1][target_variable].dropna()) == 0 or len(base[target_variable].dropna()) == 0:
+                continue
+
+            storm_prob = stats.mannwhitneyu(window[1][target_variable].dropna(), storm[target_variable].dropna()).pvalue
+            base_prob = stats.mannwhitneyu(window[1][target_variable].dropna(), base[target_variable].dropna()).pvalue
 
             if storm_prob > 0.05:
                 num_storm += 1
@@ -313,48 +328,15 @@ def checkRain(row, df):
             df.loc[index:nextSixEnd]["isRain"] == True).first_valid_index()
         time_diff = ((next_rain - last_rain).total_seconds())/60
         if time_diff < 360:
-            row["isRain"] = True
-            row["Flow"] == "StormFlow"
             return "StormFlow"
         elif time_diff >= 360:
-            if row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
-                    and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
-                    df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
-                df["isRain"] = True
-                return "StormFlow"
-            elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
-                    and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
-                    df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
-                row["isRain"] = True
-                return "StormFlow"
-            else:
-                return "BaseFlow"
-    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values \
-        and row["Flow"] == "StormFlow" and "BaseFlow" in\
-        df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
-        return "BaseFlow"
-    elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values \
-        and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" in\
-        df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
+            return "BaseFlow"
+    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df.loc[index:nextSixEnd]["isRain"].values:
         return "BaseFlow"
     elif row["isRain"] == True:
-        row["Flow"] = "StormFlow"
         return "StormFlow"
-    elif row["isRain"] == False and True in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
-            and row["Flow"] == "StormFlow" and "BaseFlow" not in \
-            df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
-        row["isRain"] = True
-        return "StormFlow"
-    elif row["isRain"] == False and True not in df.loc[previousSixStart:index]["isRain"].values and True not in df["isRain"].loc[index:nextSixEnd].values \
-            and True in df.loc[:index]["isRain"].values and row["Flow"] == "StormFlow" and "BaseFlow" not in \
-            df.loc[df.loc[:index].where(df.loc[:index]["isRain"] == True).last_valid_index()+timedelta(minutes=5):index]["Flow"].values:
-        row["isRain"] = True
-        return "StormFlow"
-    elif row["isStorm"] == "NA":
-        return "NA"
     else:
         return "BaseFlow"
-
 
 
 def correctData(filename, columns, target, units, dir):
@@ -375,17 +357,30 @@ def correctData(filename, columns, target, units, dir):
         before_df = df.copy(deep=True)
         before_df.columns.name = "Before"
 
+        df["Rain"] = df["Rain"].fillna(0)
 
-        df["Flow"] = np.where(df["Flow"] > 0.1, "StormFlow", "BaseFlow")
+        df["isFlow"] = np.where(df["Flow"] < 0.1, 1, 0)
+
         df["isRain"] = np.where(df["Rain"] == 0, False, True)
         df["isStorm"] = "BaseFlow"
 
         df["isStorm"] = df.parallel_apply(checkRain, axis=1, args=(df,))
 
         target_variable = target
+
+        df["stormNum"] = (df["isStorm"] != df["isStorm"].shift()).cumsum()
+
+        df["isStorm_Rain"] = df["isStorm"].astype(str) + df["stormNum"].astype(str)
+
+        df["flowSum"] = df.groupby(["stormNum"])["isFlow"].cumsum()
+        df["stormNum"] = np.where((df["isStorm"] == "BaseFlow") & (df["flowSum"] == 0), df["stormNum"] - 1, df["stormNum"])
+        df["wasChanged"] = np.where((df["isStorm"] == "BaseFlow") & (df["flowSum"] == 0), "Yes", "")
+        df["isStorm"] = np.where((df["isStorm"] == "BaseFlow") & (df["flowSum"] == 0), "StormFlow", df["isStorm"])
+
         test_difference(df, target_variable)
 
         df["stormNum"] = (df["isStorm"] != df["isStorm"].shift()).cumsum()
+
         df["isStormCopy"] = df["isStorm"]
         df["isStormCopy"].where(df["isStorm"] == "StormFlow", 1, inplace=True)
         df["isStormCopy"].where(df["isStorm"] == "BaseFlow", 0, inplace=True)
@@ -394,8 +389,9 @@ def correctData(filename, columns, target, units, dir):
 
         test_event_difference(df, target_variable)
 
-        df["ZScore"] = df.groupby(df["isStorm"])[
-                                  target].transform(stats.zscore)
+        df["ZScore"] = df.groupby(df["isStorm"]).apply(moving_zscore, (target))
+        df["emwa"] = df.groupby(df["isStorm"]).apply(moving_ewma, (target))
+        df["ewmstd"] = df.groupby(df["isStorm"]).apply(moving_ewmstd, (target))
         df["ZScore_bool"] = df["ZScore"].apply(
             lambda x: True if abs(x) >= 3 else False)
         df["cumulativeRain"] = df.groupby("isStorm")["Rain"].cumsum()
@@ -405,14 +401,18 @@ def correctData(filename, columns, target, units, dir):
         other = df[df["isStorm"].str.contains("NA")]
         other[target] = other[target].fillna(other.groupby(other["isStorm"])[
                                                      target].transform(np.mean))
-        other[target].where((other["ZScore_bool"] == False) & (other[target] > 0), other.groupby(
-            other["isStorm"])[target].transform(np.mean), inplace=True)
+        other[target].where((other["ZScore_bool"] == False) & (other[target] > 0),
+            np.nan, inplace=True)
+
+        other[target] = other[target].interpolate(method = "linear")
 
         base = df[df["isStorm"].str.contains("BaseFlow")]
         base[target] = base[target].fillna(base.groupby(base["isStorm"])[
                                                    target].transform(np.mean))
-        base[target].where((base["ZScore_bool"] == False) & (base[target] > 0), base.groupby(
-            base["isStorm"])[target].transform(np.mean), inplace=True)
+        base[target].where((base["ZScore_bool"] == False) & (base[target] > 0),
+            np.nan, inplace=True)
+
+        base[target] = base[target].interpolate(method = "linear")
 
         storm = df[df["isStorm"].str.contains("StormFlow")]
         storm[target] = storm[target].fillna(storm.groupby(storm["isStorm"])[
@@ -423,18 +423,29 @@ def correctData(filename, columns, target, units, dir):
         storm["Calculated" + target + "_bool"] = storm["Calculated" + target].isnull()
 
         storm[target] = np.where(((storm["ZScore_bool"] == True) & (storm["Calculated" + target + "_bool"] == True)),
-            storm.groupby(storm["isStorm"])[target].transform(np.median), storm[target])
+            np.nan, storm[target])
+
+        storm[target] = np.where(storm[target] < 0,
+                                  storm.groupby(storm["isStorm"])[target].transform(np.median), storm[target])
+
+        storm[target] = storm[target].interpolate(method = "linear")
 
         combined_df = pd.concat([other, base, storm]).sort_index()
         combined_df.columns.name = "After"
         visualizeDataChange([before_df, combined_df], target, name, units)
-        combined_df["Flow"] = before_df["Flow"]
-        combined_df = combined_df.drop(
-            ["stormNum", "ZScore", "ZScore_bool", "isRain", "isStormCopy", "cumulativeRain"], axis=1)
 
         combined_df.to_excel(os.path.join(
             output_directory, df.columns.name + "_withRegression_QAQC.xlsx"))
 
+
+def moving_zscore(df, target):
+    return pd.DataFrame((df[target] - df[target].ewm(alpha = 0.05, ignore_na = True).mean())/df[target].ewm(alpha = 0.05, ignore_na = True).std())
+
+def moving_ewma(df, target):
+    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).mean())
+
+def moving_ewmstd(df, target):
+    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).std())
 
 
 def visualizeDataChange(dfs, target_variable, name, units):
@@ -453,15 +464,16 @@ def visualizeDataChange(dfs, target_variable, name, units):
     ax = fig.add_subplot(111)
     ax2 = ax.twinx()
 
-    ax.set_xlim([dfs[0].index.min(), dfs[0].index.max()])
 
     if name == "CSW_2020":
         ax.set_ylim(0, 300)
         ax2.set_ylim(0, 300)
+        ax.set_xlim([dfs[1].index.min(), dfs[1].index.max()])
 
     if name == "Commons_2020":
         ax.set_ylim(-10, 60)
         ax2.set_ylim(-10, 60)
+        ax.set_xlim([dfs[1].index.min(), dfs[1].index.max()])
 
     for df in dfs:
         if df.columns.name == "Before":
