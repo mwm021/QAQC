@@ -63,7 +63,7 @@ def checkRain(row, df):
         return "BaseFlow"
 
 
-def correctData(filename, columns, target, units):
+def correctData(filename, columns, target, units, threshold):
     dfs = []
     files = glob.glob(os.path.join(os.getcwd(), data_directory, filename))
 
@@ -114,26 +114,25 @@ def correctData(filename, columns, target, units):
 
 
         other = df[df["isStorm"].str.contains("NA")]
-        other[target] = other[target].fillna(other.groupby(other["isStorm"])[
-                                                     target].transform(np.mean))
-        other[target].where((other["ZScore_bool"] == False) & (other[target] > 0),
-            np.nan, inplace=True)
+        other[target] = other[target].fillna(other.groupby(other["isStorm"])[target].transform(np.mean))
+        other[target].where((other["ZScore_bool"] == False) & (other[target] > 0), np.nan, inplace=True)
+        other[target].where(other[target] < threshold, np.nan, inplace=True)
+
 
         other[target] = other[target].interpolate(method = "linear")
 
         base = df[df["isStorm"].str.contains("BaseFlow")]
-        base[target] = base[target].fillna(base.groupby(base["isStorm"])[
-                                                   target].transform(np.mean))
-        base[target].where((base["ZScore_bool"] == False) & (base[target] > 0),
-            np.nan, inplace=True)
+        base[target] = base[target].fillna(base.groupby(base["isStorm"])[target].transform(np.mean))
+        base[target].where((base["ZScore_bool"] == False) & (base[target] > 0), np.nan, inplace=True)
+        base[target].where(base[target] < threshold, np.nan, inplace=True)
 
         base[target] = base[target].interpolate(method = "linear")
 
         storm = df[df["isStorm"].str.contains("StormFlow")]
         storm[target] = storm[target].fillna(storm.groupby(storm["isStorm"])[
                                                      target].transform(np.median))
-        storm[target].where((storm["ZScore_bool"] == False) & (storm[target] > 0),
-            np.nan, inplace=True)
+        storm[target].where((storm["ZScore_bool"] == False) & (storm[target] > 0), np.nan, inplace=True)
+        storm[target].where(storm[target] < threshold, np.nan, inplace=True)
 
         storm[target] = storm[target].interpolate(method = "linear")
 
@@ -146,13 +145,13 @@ def correctData(filename, columns, target, units):
             output_directory, df.columns.name + "_QAQC.xlsx"))
 
 def moving_zscore(df, target):
-    return pd.DataFrame((df[target] - df[target].ewm(alpha = 0.05, ignore_na = True).mean())/df[target].ewm(alpha = 0.05, ignore_na = True).std())
+    return pd.DataFrame((df[target] - df[target].ewm(alpha = 0.05, ignore_na = True).mean().shift(-1))/df[target].ewm(alpha = 0.05, ignore_na = True).std().shift(-1))
 
 def moving_ewma(df, target):
-    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).mean())
+    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).mean().shift(-1))
 
 def moving_ewmstd(df, target):
-    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).std())
+    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).std().shift(-1))
 
 def visualizeDataChange(dfs, target_variable, name, units):
     cmap = ListedColormap(['gray', 'white'])
@@ -214,5 +213,5 @@ def visualizeDataChange(dfs, target_variable, name, units):
     plt.close()
 
 
-correctData("CSW_2020.xlsx", ["Datetime", "Velocity", "Flow", "Rain"], "Velocity", "ft/s")
-correctData("Commons_2020.xlsx", ["Datetime", "Depth", "Velocity", "Flow", "Rain"], "Depth", "in")
+correctData("CSW_2020.xlsx", ["Datetime", "Velocity", "Flow", "Rain"], "Velocity", "ft/s", 30)
+correctData("Commons_2020.xlsx", ["Datetime", "Depth", "Velocity", "Flow", "Rain"], "Depth", "in", 18)

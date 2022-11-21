@@ -80,23 +80,22 @@ def test_event_difference(df, target_variable):
         storm_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_storm][target_variable].dropna(), storm[target_variable].dropna()).pvalue
         base_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_storm][target_variable].dropna(), base[target_variable].dropna()).pvalue
 
-        if storm_prob > 0.05:
+        if storm_prob > 0.05 and base_prob <= 0.05:
             num_storm += 1
-        elif base_prob > 0.05:
+        if base_prob > 0.05 and storm_prob <= 0.05:
             num_base += 1
-        elif storm_prob > 0.05 and base_prob > 0.05:
+        if storm_prob > 0.05 and base_prob > 0.05:
             num_both += 1
-        else:
+        if storm_prob <= 0.05 and base_prob <= 0.05:
             num_neither += 1
 
-    diff_df = pd.DataFrame({"num_storm" : num_storm,
-                                "num_base" : num_base,
-                                "num_both" : num_both,
-                                "num_neither" : num_neither
-                                },
-                               index=[0])
+    diff_df = pd.DataFrame({"ns_storm_s_base" : num_storm,
+                            "ns_base_s_storm" : num_base,
+                            "ns_both" : num_both,
+                            "s_both" : num_neither},
+                            index=[0])
 
-    diff_df.to_csv(os.path.join(differences, target_variable  + "_" + "storm" + ".csv"))
+    diff_df.to_csv(os.path.join(differences, target_variable  + "_" + "storm" + ".csv"), index = False)
 
     num_both = 0
     num_storm = 0
@@ -112,23 +111,22 @@ def test_event_difference(df, target_variable):
         storm_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_base][target_variable].dropna(), storm[target_variable].dropna()).pvalue
         base_prob = stats.mannwhitneyu(df[df["isStorm"] == unique_base][target_variable].dropna(), base[target_variable].dropna()).pvalue
 
-        if storm_prob > 0.05:
+        if storm_prob > 0.05 and base_prob <= 0.05:
             num_storm += 1
-        elif base_prob > 0.05:
+        if base_prob > 0.05 and storm_prob <= 0.05:
             num_base += 1
-        elif storm_prob > 0.05 and base_prob > 0.05:
+        if storm_prob > 0.05 and base_prob > 0.05:
             num_both += 1
-        else:
+        if storm_prob <= 0.05 and base_prob <= 0.05:
             num_neither += 1
 
-    diff_df = pd.DataFrame({"num_storm" : num_storm,
-                                "num_base" : num_base,
-                                "num_both" : num_both,
-                                "num_neither" : num_neither
-                                },
-                               index=[0])
+    diff_df = pd.DataFrame({"ns_storm_s_base" : num_storm,
+                            "ns_base_s_storm" : num_base,
+                            "ns_both" : num_both,
+                            "s_both" : num_neither},
+                            index=[0])
 
-    diff_df.to_csv(os.path.join(differences, target_variable  + "_" + "base" + ".csv"))
+    diff_df.to_csv(os.path.join(differences, target_variable  + "_" + "base" + ".csv"), index = False)
 
 def test_difference(df, target_variable):
     storm = df[df["isStorm"] == "StormFlow"]
@@ -150,23 +148,23 @@ def test_difference(df, target_variable):
             storm_prob = stats.mannwhitneyu(window[1][target_variable].dropna(), storm[target_variable].dropna()).pvalue
             base_prob = stats.mannwhitneyu(window[1][target_variable].dropna(), base[target_variable].dropna()).pvalue
 
-            if storm_prob > 0.05:
+            if storm_prob > 0.05 and base_prob <= 0.05:
                 num_storm += 1
-            elif base_prob > 0.05:
+            if base_prob > 0.05 and storm_prob <= 0.05:
                 num_base += 1
-            elif storm_prob > 0.05 and base_prob > 0.05:
+            if storm_prob > 0.05 and base_prob > 0.05:
                 num_both += 1
-            else:
+            if storm_prob <= 0.05 and base_prob <= 0.05:
                 num_neither += 1
 
-        diff_df = pd.DataFrame({"num_storm" : num_storm,
-                                    "num_base" : num_base,
-                                    "num_both" : num_both,
-                                    "num_neither" : num_neither
-                                    },
-                                   index=[0])
+        diff_df = pd.DataFrame({"ns_storm_s_base" : num_storm,
+                                "ns_base_s_storm" : num_base,
+                                "ns_both" : num_both,
+                                "s_both" : num_neither
+                                },
+                                index=[0])
 
-        diff_df.to_csv(os.path.join(differences, target_variable  + "_" + period + ".csv"))
+        diff_df.to_csv(os.path.join(differences, target_variable  + "_" + period + ".csv"), index = False)
 
 
 
@@ -339,7 +337,7 @@ def checkRain(row, df):
         return "BaseFlow"
 
 
-def correctData(filename, columns, target, units, dir):
+def correctData(filename, columns, target, units, dir, threshold):
     dfs = []
 
     files = glob.glob(os.path.join(os.getcwd(), data_directory, filename))
@@ -399,34 +397,30 @@ def correctData(filename, columns, target, units, dir):
 
 
         other = df[df["isStorm"].str.contains("NA")]
-        other[target] = other[target].fillna(other.groupby(other["isStorm"])[
-                                                     target].transform(np.mean))
-        other[target].where((other["ZScore_bool"] == False) & (other[target] > 0),
-            np.nan, inplace=True)
+        other[target] = other[target].fillna(other.groupby(other["isStorm"])[target].transform(np.mean))
+        other[target].where((other["ZScore_bool"] == False) & (other[target] > 0),np.nan, inplace=True)
+
+        other[target].where(other[target] < threshold , np.nan, inplace=True)
 
         other[target] = other[target].interpolate(method = "linear")
 
         base = df[df["isStorm"].str.contains("BaseFlow")]
-        base[target] = base[target].fillna(base.groupby(base["isStorm"])[
-                                                   target].transform(np.mean))
-        base[target].where((base["ZScore_bool"] == False) & (base[target] > 0),
-            np.nan, inplace=True)
+        base[target] = base[target].fillna(base.groupby(base["isStorm"])[target].transform(np.mean))
+        base[target].where((base["ZScore_bool"] == False) & (base[target] > 0), np.nan, inplace=True)
+
+        base[target].where(base[target] < threshold , np.nan, inplace=True)
 
         base[target] = base[target].interpolate(method = "linear")
 
         storm = df[df["isStorm"].str.contains("StormFlow")]
-        storm[target] = storm[target].fillna(storm.groupby(storm["isStorm"])[
-                                                     target].transform(np.median))
-        storm["Calculated" + target] = storm.groupby(
-            "isStorm").apply(test_regression, dir = dir, target = target, units = units)
+        storm[target] = storm[target].fillna(storm.groupby(storm["isStorm"])[target].transform(np.median))
+        storm["Calculated" + target] = storm.groupby("isStorm").apply(test_regression, dir = dir, target = target, units = units)
 
         storm["Calculated" + target + "_bool"] = storm["Calculated" + target].isnull()
 
-        storm[target] = np.where(((storm["ZScore_bool"] == True) & (storm["Calculated" + target + "_bool"] == True)),
-            np.nan, storm[target])
+        storm[target] = np.where(((storm["ZScore_bool"] == True) & (storm["Calculated" + target + "_bool"] == True)), np.nan, storm[target])
 
-        storm[target] = np.where(storm[target] < 0,
-                                  storm.groupby(storm["isStorm"])[target].transform(np.median), storm[target])
+        storm[target] = np.where(((storm[target] < 0) | (storm[target] > threshold)), np.nan, storm[target])
 
         storm[target] = storm[target].interpolate(method = "linear")
 
@@ -439,13 +433,13 @@ def correctData(filename, columns, target, units, dir):
 
 
 def moving_zscore(df, target):
-    return pd.DataFrame((df[target] - df[target].ewm(alpha = 0.05, ignore_na = True).mean())/df[target].ewm(alpha = 0.05, ignore_na = True).std())
+    return pd.DataFrame((df[target] - df[target].ewm(alpha = 0.05, ignore_na = True).mean().shift(-1))/df[target].ewm(alpha = 0.05, ignore_na = True).std().shift(-1))
 
 def moving_ewma(df, target):
-    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).mean())
+    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).mean().shift(-1))
 
 def moving_ewmstd(df, target):
-    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).std())
+    return pd.DataFrame(df[target].ewm(alpha = 0.05, ignore_na = True).std().shift(-1))
 
 
 def visualizeDataChange(dfs, target_variable, name, units):
@@ -529,5 +523,5 @@ def plot_regression(calculated, original, cumulativeRain, rsq, equation, name, d
     plt.close()
 
 
-correctData("CSW_2020.xlsx", ["Datetime", "Velocity", "Flow", "Rain"], "Velocity", "ft/s", csw_regression)
-correctData("Commons_2020.xlsx", ["Datetime", "Depth", "Velocity", "Flow", "Rain"], "Depth", "in", commons_regression)
+correctData("CSW_2020.xlsx", ["Datetime", "Velocity", "Flow", "Rain"], "Velocity", "ft/s", csw_regression, 30)
+correctData("Commons_2020.xlsx", ["Datetime", "Depth", "Velocity", "Flow", "Rain"], "Depth", "in", commons_regression, 18)
