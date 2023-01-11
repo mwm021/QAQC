@@ -397,7 +397,7 @@ def correctData(filename, columns, target, units, dir, threshold):
 
 
         other = df[df["isStorm"].str.contains("NA")]
-        other[target] = other[target].fillna(other.groupby(other["isStorm"])[target].transform(np.mean))
+        #other[target] = other[target].fillna(other.groupby(other["isStorm"])[target].transform(np.mean))
         other[target].where((other["ZScore_bool"] == False) & (other[target] > 0),np.nan, inplace=True)
 
         other[target].where(other[target] < threshold , np.nan, inplace=True)
@@ -405,7 +405,7 @@ def correctData(filename, columns, target, units, dir, threshold):
         other[target] = other[target].interpolate(method = "linear")
 
         base = df[df["isStorm"].str.contains("BaseFlow")]
-        base[target] = base[target].fillna(base.groupby(base["isStorm"])[target].transform(np.mean))
+        #base[target] = base[target].fillna(base.groupby(base["isStorm"])[target].transform(np.mean))
         base[target].where((base["ZScore_bool"] == False) & (base[target] > 0), np.nan, inplace=True)
 
         base[target].where(base[target] < threshold , np.nan, inplace=True)
@@ -413,7 +413,7 @@ def correctData(filename, columns, target, units, dir, threshold):
         base[target] = base[target].interpolate(method = "linear")
 
         storm = df[df["isStorm"].str.contains("StormFlow")]
-        storm[target] = storm[target].fillna(storm.groupby(storm["isStorm"])[target].transform(np.median))
+        #storm[target] = storm[target].fillna(storm.groupby(storm["isStorm"])[target].transform(np.median))
         storm["Calculated" + target] = storm.groupby("isStorm").apply(test_regression, dir = dir, target = target, units = units)
 
         storm["Calculated" + target + "_bool"] = storm["Calculated" + target].isnull()

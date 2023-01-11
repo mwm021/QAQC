@@ -398,7 +398,7 @@ ggsave(plot = final_plot, here("Plots_withNewLimits", "Commons", "Imputation.png
 
 
 ## mapping change in flow
-constant_v_base <- 2 #feet/second
+constant_v_base <- 0.5 #feet/second
 constant_v_storm <- 4 #feet/second
 constant_y_base <- 3/12 #feet
 constant_y_storm <- 5/12 #feet
@@ -408,24 +408,33 @@ r_commons <- (18/12)/2
 
 csw_flow <- before_and_after_csw %>% mutate(
   flow_before = case_when(
-    grepl("Base", isStorm) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_base)/r_csw)-sin(2*acos((r_csw-constant_y_base)/r_csw)))/2) * Velocity_before,
-    grepl("Storm", isStorm) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_storm)/r_csw)-sin(2*acos((r_csw-constant_y_storm)/r_csw)))/2) * Velocity_before,
+    grepl("Base", isStorm) & (constant_y_base <= r_csw) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_base)/r_csw)-sin(2*acos((r_csw-constant_y_base)/r_csw)))/2) * Velocity_before,
+    grepl("Storm", isStorm) & (constant_y_base <= r_csw) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_storm)/r_csw)-sin(2*acos((r_csw-constant_y_storm)/r_csw)))/2) * Velocity_before,
+    grepl("Base", isStorm) & (constant_y_base > r_csw) ~ ((pi * r_csw^2) - ((r_csw^2) * (2*acos((constant_y_base-r_csw)/r_csw)-sin(2*acos((constant_y_base-r_csw)/r_csw)))/2)) * Velocity_before,
+    grepl("Storm", isStorm) & (constant_y_base > r_csw) ~ ((pi * r_csw^2) - ((r_csw^2) * (2*acos((constant_y_storm-r_csw)/r_csw)-sin(2*acos((constant_y_storm-r_csw)/r_csw)))/2)) * Velocity_before,
   ),
   flow_after = case_when(
-    grepl("Base", isStorm) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_base)/r_csw)-sin(2*acos((r_csw-constant_y_base)/r_csw)))/2) * Velocity_after,
-    grepl("Storm", isStorm) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_storm)/r_csw)-sin(2*acos((r_csw-constant_y_storm)/r_csw)))/2) * Velocity_after
+    grepl("Base", isStorm) & (constant_y_base <= r_csw) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_base)/r_csw)-sin(2*acos((r_csw-constant_y_base)/r_csw)))/2) * Velocity_after,
+    grepl("Storm", isStorm) & (constant_y_storm <= r_csw) ~ ((r_csw^2) * (2*acos((r_csw-constant_y_storm)/r_csw)-sin(2*acos((r_csw-constant_y_storm)/r_csw)))/2) * Velocity_after,
+    grepl("Base", isStorm) & (constant_y_base > r_csw) ~ ((pi * r_csw^2) - ((r_csw^2) * (2*acos((constant_y_base-r_csw)/r_csw)-sin(2*acos((constant_y_base-r_csw)/r_csw)))/2)) * Velocity_after,
+    grepl("Storm", isStorm) & (constant_y_storm > r_csw) ~ ((pi * r_csw^2) - ((r_csw^2) * (2*acos((constant_y_storm-r_csw)/r_csw)-sin(2*acos((constant_y_storm-r_csw)/r_csw)))/2)) * Velocity_after
+    
   )
 )
 
 
 commons_flow <- before_and_after_commons %>% mutate(
   flow_before =  case_when(
-    grepl("Base", isStorm) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_before)/12))/r_commons)-sin(2*acos((r_commons-((Depth_before)/12))/r_commons)))/2) * constant_v_base,
-    grepl("Storm", isStorm) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_before)/12))/r_commons)-sin(2*acos((r_commons-((Depth_before)/12))/r_commons)))/2) * constant_v_storm,
+    grepl("Base", isStorm) & ((Depth_before/12) <= r_commons) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_before)/12))/r_commons)-sin(2*acos((r_commons-((Depth_before)/12))/r_commons)))/2) * constant_v_base,
+    grepl("Storm", isStorm) & ((Depth_before/12) <= r_commons) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_before)/12))/r_commons)-sin(2*acos((r_commons-((Depth_before)/12))/r_commons)))/2) * constant_v_storm,
+    grepl("Base", isStorm) & ((Depth_before/12) > r_commons) ~ ((pi * r_commons^2) - ((r_commons^2) * (2*acos((((Depth_before)/12) - r_commons)/r_commons)-sin(2*acos((((Depth_before)/12)-r_commons)/r_commons)))/2)) * constant_v_base,
+    grepl("Storm", isStorm) & ((Depth_before/12) > r_commons) ~ ((pi * r_commons^2) - ((r_commons^2) * (2*acos((((Depth_before)/12)-r_commons)/r_commons)-sin(2*acos((((Depth_before)/12)-r_commons)/r_commons)))/2)) * constant_v_storm,
   ),
   flow_after = case_when(
-    grepl("Base", isStorm) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_after)/12))/r_commons)-sin(2*acos((r_commons-((Depth_after)/12))/r_commons)))/2) * constant_v_base,
-    grepl("Storm", isStorm) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_after)/12))/r_commons)-sin(2*acos((r_commons-((Depth_after)/12))/r_commons)))/2) * constant_v_storm,
+    grepl("Base", isStorm) & ((Depth_after/12) <= r_commons) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_after)/12))/r_commons)-sin(2*acos((r_commons-((Depth_after)/12))/r_commons)))/2) * constant_v_base,
+    grepl("Storm", isStorm) & ((Depth_after/12) <= r_commons) ~ ((r_commons^2) * (2*acos((r_commons-((Depth_after)/12))/r_commons)-sin(2*acos((r_commons-((Depth_after)/12))/r_commons)))/2) * constant_v_storm,
+    grepl("Base", isStorm) & ((Depth_after/12) > r_commons) ~ ((pi * r_commons^2) - ((r_commons^2) * (2*acos((((Depth_after)/12)-r_commons)/r_commons)-sin(2*acos((((Depth_after)/12)-r_commons)/r_commons)))/2)) * constant_v_base,
+    grepl("Storm", isStorm) & ((Depth_after/12) > r_commons) ~ ((pi * r_commons^2) - ((r_commons^2) * (2*acos((((Depth_after)/12)-r_commons)/r_commons)-sin(2*acos((((Depth_after)/12)-r_commons)/r_commons)))/2)) * constant_v_storm,
   )
 )
 
@@ -448,7 +457,7 @@ csw_volume_change %>% filter(grepl("Storm", isStorm)) %>% rename("Before" = "tot
   ggplot(aes(x = Rain, y = Flow, color = Type)) + geom_point(aes(x = Rain, y = Flow, color = Type), size = 5, alpha = 0.4) + 
   geom_smooth(aes(x = Rain, y = Flow, color = Type), method = "lm", formula = y ~ x, se = F) + xlab("Rainfall (in.)") + ylab("Total Flow Volume (cubic feet)") +
   stat_regline_equation(
-    aes(label =  paste(..eq.label.., ..adj.rr.label.., ..BIC.label.., sep = "~~~~")),
+    aes(label =  paste(..eq.label.., ..adj.rr.label.., sep = "~~~~")),
     formula = y ~ x,
     label.x = 0.7,
     label.y.npc = 0.95,
@@ -820,7 +829,7 @@ time_scale <- read_excel(here("Output", "CSW_2020_withRegression_QAQC.xlsx")) %>
   use = case_when((Datetime >= "2020-02-07 04:00:00" & Datetime <= "2020-02-07 14:00:00") ~ TRUE)
   )
 
-
+theme_set(theme_grey(base_size = 30))
 
 time_scale %>% filter(isStorm %in% c("BaseFlow35", "StormFlow36", "BaseFlow37", "StormFlow38", "BaseFlow39")) %>% ggplot() +
   geom_point(aes(x = Datetime, y = Velocity)) +
@@ -833,13 +842,13 @@ time_scale %>% filter(isStorm %in% c("BaseFlow35", "StormFlow36", "BaseFlow37", 
 ggsave(here("Plots_withNewLimits", "Time", "StormFlow.png"))
 
 time_scale %>% filter(isStorm == "StormFlow36") %>% ggplot() + geom_histogram(aes( x = Velocity), color = "black", fill = "white") +  
-  theme_bw(base_size = 26) +
+  theme_bw(base_size = 40) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylab("Count") + xlab("Velocity (ft/s)") +
   geom_vline(data = . %>% mutate(Average = median(Velocity)), aes(xintercept = Average, color = "Mean"), size = 2) +
   geom_vline(data = . %>% mutate(Median = mean(Velocity)), aes(xintercept = Median, color = "Median"), size = 2) +
   scale_color_manual(values = c("Mean" = "cornflowerblue", "Median" = "mediumvioletred")) + labs(color = "") + theme(legend.position = "top")
-ggsave(here("Plots_withNewLimits", "Time", "StormFlow_dist.png"))
+ggsave(here("Plots_withNewLimits", "Time", "StormFlow_dist.png"), height = 20, width = 20, units = "cm")
 
 time_scale %>% filter(isStorm %in% c("BaseFlow35", "StormFlow36", "BaseFlow37", "StormFlow38", "BaseFlow39")) %>% ggplot() +
   geom_point(aes(x = Datetime, y = Velocity)) +
@@ -852,13 +861,13 @@ labs(fill = "Event Type") +
 ggsave(here("Plots_withNewLimits", "Time", "BaseFlow.png"))
 
 time_scale %>% filter(isStorm == "BaseFlow37") %>% ggplot() + geom_histogram(aes( x = Velocity), color = "black", fill = "white") +    
-  theme_bw(base_size = 26) +
+  theme_bw(base_size = 40) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylab("Count") + xlab("Velocity (ft/s)") +
   geom_vline(data = . %>% mutate(Average = median(Velocity)), aes(xintercept = Average, color = "Mean"), size = 2) +
   geom_vline(data = . %>% mutate(Median = mean(Velocity)), aes(xintercept = Median, color = "Median"), size = 2) +
   scale_color_manual(values = c("Mean" = "cornflowerblue", "Median" = "mediumvioletred")) + labs(color = "") + theme(legend.position = "top")
-ggsave(here("Plots_withNewLimits", "Time", "BaseFlow_dist.png"))
+ggsave(here("Plots_withNewLimits", "Time", "BaseFlow_dist.png"), height = 20, width = 20, units = "cm")
 
 time_scale %>% filter(isStorm %in% c("BaseFlow35", "StormFlow36", "BaseFlow37", "StormFlow38", "BaseFlow39")) %>% ggplot() +
   geom_point(aes(x = Datetime, y = Velocity)) +
@@ -871,13 +880,13 @@ time_scale %>% filter(isStorm %in% c("BaseFlow35", "StormFlow36", "BaseFlow37", 
 ggsave(here("Plots_withNewLimits", "Time", "Abitrary.png"))
 
 time_scale %>% filter(use == TRUE) %>% ggplot() + geom_histogram(aes( x = Velocity), color = "black", fill = "white") +  
-  theme_bw(base_size = 26) +
+  theme_bw(base_size = 40) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylab("Count") + xlab("Velocity (ft/s)") +
   geom_vline(data = . %>% mutate(Average = median(Velocity)), aes(xintercept = Average, color = "Mean"), size = 2) +
   geom_vline(data = . %>% mutate(Median = mean(Velocity)), aes(xintercept = Median, color = "Median"), size = 2) +
   scale_color_manual(values = c("Mean" = "cornflowerblue", "Median" = "mediumvioletred")) + labs(color = "") + theme(legend.position = "top")
-ggsave(here("Plots_withNewLimits", "Time", "Arbitrary_dist.png"))
+ggsave(here("Plots_withNewLimits", "Time", "Arbitrary_dist.png"), height = 20, width = 20, units = "cm")
 
 
 
